@@ -1,0 +1,6 @@
+packages:
+  - "apps/web"
+
+# Dependency install scripts are denied unless explicitly reviewed and allowed here.
+allowBuilds:
+  unrs-resolver: false

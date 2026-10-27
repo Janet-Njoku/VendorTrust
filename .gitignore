@@ -1,0 +1,64 @@
+# Secrets and local env (patterns without a leading slash match at any depth)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+secrets/
+.secrets/
+service-account*.json
+credentials*.json
+
+# Supabase CLI local state
+.supabase/
+**/supabase/.temp/
+**/supabase/.branches/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.vitest/
+.pnpm-store/
+
+# Local data, uploaded evidence, database dumps (never commit evidence)
+uploads/
+evidence-local/
+.local-data/
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+*.bak
+
+# Logs and process files
+*.log
+*.pid
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

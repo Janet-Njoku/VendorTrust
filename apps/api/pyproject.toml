@@ -1,0 +1,48 @@
+[project]
+name = "vendortrust-api"
+version = "0.0.1"
+description = "VendorTrust API: third-party security due diligence and control validation"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "uvicorn[standard]>=0.32",
+]
+
+[dependency-groups]
+dev = [
+    # Required by starlette.testclient (Starlette 1.10 documents httpx2 as the TestClient
+    # dependency and deprecates the httpx fallback). Maintained by the pydantic org. Dev only:
+    # it is not in the production dependency set. See docs/dependency-notes.md.
+    "httpx2>=2.0",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["."]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "C4", "PT", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --cov=app --cov-report=term-missing"
+pythonpath = ["."]

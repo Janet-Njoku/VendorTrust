@@ -1,0 +1,13 @@
+{
+  "name": "vendortrust",
+  "private": true,
+  "description": "VendorTrust monorepo root. The API lives in apps/api and is managed with uv.",
+  "scripts": {
+    "web:dev": "pnpm --filter web dev",
+    "web:lint": "pnpm --filter web lint",
+    "web:typecheck": "pnpm --filter web typecheck",
+    "web:test": "pnpm --filter web test",
+    "web:build": "pnpm --filter web build"
+  },
+  "packageManager": "pnpm@12.15.0"
+}

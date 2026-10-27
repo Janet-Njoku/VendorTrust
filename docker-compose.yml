@@ -1,0 +1,18 @@
+# Local development services only. Not a production deployment definition.
+services:
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: vendortrust-clamav
+    ports:
+      - "127.0.0.1:3310:3310" # bound to loopback only
+    volumes:
+      - clamav-db:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s # signature download on first start
+
+volumes:
+  clamav-db:
