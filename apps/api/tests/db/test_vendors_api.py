@@ -322,11 +322,15 @@ def test_a_vendor_can_be_created_archived(api: TestClient, world: World) -> None
 
 def test_list_pagination_and_ordering(api: TestClient, world: World) -> None:
     headers = auth(world.a_admin)
-    for name in ("Zeta", "Alpha", "Mid"):
+    # mixed case and underscores: the order is byte order ("C" collation), not the platform's locale
+    for name in ("Zeta", "vendor_a2", "Alpha", "vendor_a1", "Mid", "Mid"):
         api.post("/vendors", json={"name": name}, headers=headers)
     everything = api.get("/vendors?limit=100", headers=headers).json()["items"]
     names = [v["name"] for v in everything]
-    assert names == sorted(names)
+    assert names == sorted(names, key=lambda n: n.encode())
+    assert "Zeta" in names and names.index("Zeta") < names.index("vendor_a1")
+    ties = [v["id"] for v in everything if v["name"] == "Mid"]
+    assert ties == sorted(ties)  # equal names are ordered by id
     page = api.get("/vendors?limit=2&offset=1", headers=headers).json()
     assert page["limit"] == 2 and page["offset"] == 1
     assert [v["id"] for v in page["items"]] == [v["id"] for v in everything[1:3]]

@@ -63,7 +63,9 @@ def list_vendors(
             text(
                 f"SELECT {COLUMNS} FROM vt.vendors "
                 "WHERE (CAST(:status AS text) IS NULL OR status = :status) "
-                "ORDER BY name, id LIMIT :limit OFFSET :offset"
+                # "C" collation: byte order, the same on every platform (the default differs between
+                # macOS and Linux). id breaks ties so pages never overlap or skip.
+                'ORDER BY name COLLATE "C", id LIMIT :limit OFFSET :offset'
             ),
             {"status": status, "limit": limit, "offset": offset},
         )
