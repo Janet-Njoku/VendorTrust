@@ -1,5 +1,18 @@
 # Implementation Roadmap
 
+## Where the project stands
+
+The portfolio MVP implemented a deliberately narrower slice than the phase table below, in this order:
+**Phase 0** (foundation, done); **Phase 1** (platform core: authentication, MFA, memberships, row level
+security, audit, vendor CRUD, first-organization bootstrap; done and tested locally, minus membership
+and invitation endpoints and MFA recovery); a **simplified Phase 3** (configurable, versioned
+questionnaires and assessments scored by a deterministic weighted method, [scoring.md](scoring.md)); and a
+first cut of **Phase 7** (the web dashboard, register, questionnaire editor and assessment screens).
+**Not started:** inherent risk and tiering (Phase 2), evidence validation (Phase 4), residual risk,
+findings and remediation (Phase 5), reporting (Phase 6), hardening and release (Phase 8). Applying the
+migrations to a real Supabase project is still waiting for an explicit go-ahead. The table below is the
+original plan, kept unchanged as the direction of travel.
+
 Revised after architecture review. The first functional milestone (end of Phase 5) must
 demonstrate real GRC automation: risk-tiered assessment, three-stage evidence validation,
 reviewer-verified controls and explainable residual risk. External technical scanning, AI

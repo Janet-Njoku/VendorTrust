@@ -1,91 +1,203 @@
 # VendorTrust
 
-Third-party security due diligence and continuous control validation platform.
+**Third-party security due diligence, built security-first.** VendorTrust is a full-stack GRC (governance,
+risk and compliance) platform that lets an organization register its vendors, assess them with
+configurable security questionnaires, and turn the answers into an explainable, deterministic risk score,
+on a multi-tenant foundation where the **database itself enforces who can see what**.
 
-VendorTrust automates vendor onboarding, risk-based security questionnaires, evidence validation,
-reviewer-verified control effectiveness, inherent and residual risk scoring, remediation tracking
-and audit-ready reporting.
+It is a portfolio project: a working vertical slice with the security model taken seriously, an honest
+account of what is not built yet, and the tests to back every claim.
 
-> **Status: Phase 0 (foundation).** There are no business features yet. See
-> [docs/roadmap.md](docs/roadmap.md).
+> **Status:** a working MVP, verified locally. Nothing has been deployed and no real Supabase project has
+> been connected. See [What is and is not built](#what-is-and-is-not-built).
 
-Mapping controls to ISO/IEC 27001:2022, SOC 2 or NIST CSF 2.0 is for reference only. It does
-not imply certification or compliance.
+## The problem
+
+Companies depend on dozens of vendors that touch their data, and "vendor risk management" often means
+spreadsheets: questionnaires emailed around, scores that depend on who filled them in, no history of what
+was asked when, and tenant or role mistakes that nobody notices until they matter. VendorTrust shows the
+alternative: structured questionnaires, scoring rules anyone can read and reproduce, frozen history, an
+audit trail, and isolation between organizations that does not depend on every query being written
+correctly.
+
+## What it does
+
+| Workflow | What you can do today |
+|---|---|
+| **Vendor register** | Add, edit, search, filter and archive vendors; each shows its current risk from its latest scored assessment |
+| **Questionnaires** | Build any number of templates, or copy the built-in 15-question starter (access control, MFA, encryption, vulnerability management, incident response, business continuity, data protection, vendor governance); edit questions, answer options, weights and risk thresholds; reorder, archive, publish |
+| **Versioned history** | Publishing freezes a version. Changes go into a new draft, so an assessment already started never changes, even if the template is edited later |
+| **Assessments** | Start one for a vendor, answer question by question (saved as you go), finalize and score |
+| **Risk scoring** | Weighted average of answer risk points, 0 to 100, classified Low, Medium, High or Critical, with a category breakdown and the contribution of every question ([methodology](docs/scoring.md)) |
+| **Dashboard** | Vendor totals, risk distribution, high-risk vendors, assessment progress, recent activity |
+| **Audit trail** | Every create, change, response and scoring decision is recorded with the acting user and role |
+| **Access** | Email sign-in with TOTP multi-factor authentication for internal roles; roles `org_admin`, `analyst`, `reviewer`, `auditor`, `vendor_user`; a one-time operator bootstrap for the first organization |
+
+## Screenshots
+
+No screenshots have been captured yet. The plan and the capture instructions are in
+[docs/screenshots/](docs/screenshots/README.md); images will be linked here once they exist. To see the
+interface now, run it in [demo mode](#try-it) (fictional data, clearly labelled).
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Client["Browser (untrusted)"]
+        UI["Next.js app<br/>TypeScript, Tailwind"]
+    end
+    IdP["Supabase Auth<br/>sign-in, TOTP MFA<br/>signed JWTs, public JWKS"]
+    subgraph API["FastAPI (connects as vt_app)"]
+        direction TB
+        V["Verify JWT"] --> M["MFA gate: aal2<br/>for internal roles"] --> C["Resolve context<br/>from the database"] --> R["Routers and<br/>scoring engine"]
+    end
+    subgraph DB["PostgreSQL, schema vt"]
+        direction TB
+        T[("Tenant tables<br/>ENABLE + FORCE RLS")]
+        D["One narrow SECURITY DEFINER<br/>membership check"]
+        G["Triggers: frozen versions,<br/>final scores, append-only audit"]
+        T --- D
+        T --- G
+    end
+    Op["Operator tools<br/>(migration credential,<br/>outside the repo)"]
+    UI -- "sign in, enrol MFA" --> IdP
+    UI -- "Bearer token" --> V
+    V -. "signing keys" .-> IdP
+    C -- "transaction-local claims" --> T
+    Op -- "vt_migrator" --> DB
+```
+
+A longer walkthrough (request sequence, state machines, data model) is in
+[docs/architecture.md](docs/architecture.md).
+
+## Security design
+
+The interesting part of the project. Each row is enforced in code and covered by tests:
+
+| Threat | Control |
+|---|---|
+| One tenant reading or changing another's data | PostgreSQL row level security with `FORCE`, on every table; the API connects as a role that owns nothing and cannot bypass it; queries carry **no** organization filter, so a query bug cannot leak |
+| Trusting the client for role or organization | Both come from the user's own membership row in the database; token claims such as `role` are ignored; only the signed `sub`, `email` and `aal` are used |
+| Forged or confused tokens | Signature, issuer, audience and expiry checked against the public JWKS; asymmetric algorithms only; `alg: none` and algorithm-confusion tokens rejected |
+| Account takeover of privileged users | Internal roles need an `aal2` (MFA) token on every data route; this cannot be disabled in production |
+| Open registration granting access | Signing in provisions a user row and nothing else. Access needs a membership; the first organization is created by an operator command that the **database** permits exactly once |
+| Rewriting history | Published questionnaire versions are immutable and scored assessments final, by database triggers; the audit log is append-only for the application role |
+| Leaked credentials | Database credentials live outside the repo, in files the loader refuses unless owner-only; never printed; the web config refuses a secret or service-role key |
+| A privileged helper function being abused | Exactly one `SECURITY DEFINER` function, owned by a non-superuser role with no `BYPASSRLS`, pinned `search_path`, no arguments, no dynamic SQL, execute rights revoked from `PUBLIC` |
+| A migration run by mistake | Alembic and the bootstrap are dry runs unless explicitly committed; downgrades need an explicit flag; only the plain migration role may run them |
+
+**Limits, stated plainly** ([trust-boundary.md](docs/trust-boundary.md)): the database cannot verify a
+JWT, so the context it receives is a claim made by the API; RLS protects against bugs, guessed
+identifiers and confused-deputy mistakes, **not** against an attacker who holds the application's database
+credential and knows a user id. The audit log is append-only for the application role but not immutable
+against a database owner or superuser. The checks were validated by mutation: the security SQL, API
+logic and frontend were deliberately broken in over a hundred different ways, and the tests were
+strengthened until each break was caught (the few survivors were equivalent changes, where a library
+already refuses the case and the extra check is defence in depth).
+
+## Technology
+
+| Layer | Stack |
+|---|---|
+| Web | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Vitest and Testing Library |
+| API | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic, PyJWT, psycopg 3 |
+| Data | PostgreSQL 17 (Supabase-compatible), row level security |
+| Identity | Supabase Auth (JWT, JWKS, TOTP MFA); a loopback-only stand-in for local development |
+| Tooling | uv, ruff, mypy (strict), pytest, pnpm, ESLint, GitHub Actions (with a PostgreSQL service), gitleaks, pip-audit and `pnpm audit` |
+
+## Try it
+
+**1. See the interface (no backend, no account).** Demo mode serves fictional data held in your browser,
+with a banner on every screen, and never contacts a server:
+
+```bash
+pnpm install
+NEXT_PUBLIC_DEMO_MODE=true pnpm web:dev          # http://localhost:3000 , then "Enter the demo"
+```
+
+**2. Run the real stack locally** (real API, real PostgreSQL, real migrations, the real operator bootstrap
+and MFA, with only the identity provider stood in locally): follow
+[docs/local-e2e.md](docs/local-e2e.md). It uses no Supabase project and no real credentials.
+
+Prerequisites: [uv](https://docs.astral.sh/uv/), Node 24 (`.node-version`) with pnpm 12, and for the
+database tests PostgreSQL 17 (`brew install uv pnpm postgresql@17`).
+
+## Tests
+
+```bash
+# API (apps/api). The database tests use the local cluster: scripts/dev-db.sh init   (once)
+uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+
+# Web (from the repository root)
+pnpm web:lint && pnpm web:typecheck && pnpm web:test && pnpm web:build
+```
+
+About 1,170 automated tests (about 975 backend, 195 frontend) cover scoring maths, every endpoint across
+tenants and roles against a real PostgreSQL, authentication and MFA, migrations, the bootstrap, the
+credential tooling, a full register-to-scored-assessment journey, and the interface. Database tests skip
+locally when no server is running but **fail** in CI, so the security suite cannot silently not run
+(`CI=true` or `VT_TEST_REQUIRE_DB=1`).
+
+## What is and is not built
+
+**Built and tested:** everything in the table above, the security controls, the migrations (0001 to 0006),
+the local end-to-end workflow, and CI.
+
+**Not built (limitations and future work):**
+
+- **Not deployed or connected to a real Supabase project.** The migrations and bootstrap are written,
+  dry-run-safe and tested locally; applying them to Supabase is a documented step waiting for approval
+  ([RUNBOOK](infra/db/RUNBOOK.md)). The local identity stand-in mirrors Supabase's documented endpoints but
+  has not been exercised against the real service.
+- **No membership management or invitations.** An administrator grants roles directly in the database; no
+  vendor portal for vendors to answer their own questionnaires.
+- **Scoring is simpler than the design baseline.** Self-reported answers are weighted and averaged; there is
+  no inherent-risk tiering, evidence upload and validation (ClamAV scanning is only scaffolding), reviewer
+  control verification, residual risk, findings, remediation, risk acceptance, approvals or PDF reports.
+  [risk-methodology.md](docs/risk-methodology.md) describes that direction and is marked as not implemented.
+- **Security gaps to close before real use:** no Content Security Policy, no rate limiting, no TOTP recovery
+  codes, no audit hash chain, no data-retention controls. [security-controls.md](docs/security-controls.md)
+  lists each control with its honest status.
+- **The credential-guard hook for Claude Code** (`.claude/hooks/`) is a best-effort tripwire with
+  regression tests, not a sandbox. It is inactive until registered in your own, git-ignored
+  `.claude/settings.local.json`; see [CLAUDE.md](CLAUDE.md#claude-code-setup-nothing-here-is-active-until-you-register-it-locally).
+- **No license has been chosen yet.**
+
+## Repository map
+
+```
+apps/api/     FastAPI service, Alembic migrations, scripts (bootstrap, local identity stand-in), tests
+apps/web/     Next.js app: screens, typed API client, auth and MFA, demo mode, tests
+infra/db/     Role and schema bootstrap SQL, preflight and verification, runbook for a Supabase project
+scripts/      Local PostgreSQL and end-to-end helpers
+docs/         Architecture, API, scoring, trust boundary, frontend, local end-to-end guide
+.claude/      Credential-guard hook and its tests (settings stay local)
+.github/      CI for the API (with PostgreSQL) and web app, security scanning
+```
 
 ## Documentation
 
 | Document | Contents |
 |---|---|
-| [docs/architecture.md](docs/architecture.md) | Components, workflow states, framework mapping, data model |
-| [docs/risk-methodology.md](docs/risk-methodology.md) | Inherent/residual scoring, evidence stages, risk acceptance |
-| [docs/security-controls.md](docs/security-controls.md) | Controls for vendor data and uploaded evidence |
-| [docs/roadmap.md](docs/roadmap.md) | Phased implementation plan |
+| [docs/architecture.md](docs/architecture.md) | Components, diagrams, decisions, data model, what is designed but not built |
+| [docs/trust-boundary.md](docs/trust-boundary.md) | The security model, trust boundary, limits and the test map |
+| [docs/scoring.md](docs/scoring.md) | Questionnaire versioning and the scoring methodology with a worked example |
+| [docs/api.md](docs/api.md) | Endpoints, roles, errors, MFA, first-login provisioning |
+| [docs/frontend.md](docs/frontend.md) | Screens, access states and MFA, auth and secrets, demo mode |
+| [docs/local-e2e.md](docs/local-e2e.md) | Run the real stack locally, step by step |
+| [docs/security-controls.md](docs/security-controls.md) | Control requirements with implementation status |
+| [docs/risk-methodology.md](docs/risk-methodology.md) | The fuller risk and evidence design (not implemented) |
+| [docs/roadmap.md](docs/roadmap.md) | Where the project stands and the phase plan |
+| [docs/phase1-design.md](docs/phase1-design.md) | The approved Phase 1 security decisions and step status |
+| [infra/db/RUNBOOK.md](infra/db/RUNBOOK.md) | Beginner-friendly procedure for a Supabase project (roles, credentials, first organization) |
+| [infra/db/README.md](infra/db/README.md) | Bootstrap design, safeguards and verification |
 | [docs/dependency-notes.md](docs/dependency-notes.md) | Rationale for non-obvious dependencies |
+| [docs/screenshots/](docs/screenshots/README.md) | Screenshot plan (none captured yet) |
 
-## Layout
+## Security notes for contributors
 
-```
-apps/api/    FastAPI service (Python 3.12, managed with uv)
-apps/web/    Next.js app (TypeScript, Tailwind CSS, pnpm)
-docs/        Architecture and methodology
-docker-compose.yml   Local dev services (ClamAV)
-```
-
-## Prerequisites
-
-- [uv](https://docs.astral.sh/uv/) (installs Python 3.12 automatically from `apps/api/.python-version`)
-- Node.js 24 LTS (see `.node-version`) and [pnpm](https://pnpm.io/) 12 (version pinned by the
-  `packageManager` field in `package.json`)
-- Docker (only for ClamAV, needed from Phase 4)
-
-macOS: `brew install uv pnpm` plus Node 24 (for example `brew install node@24`, or a version
-manager that reads `.node-version`).
-
-## Local setup
-
-```bash
-# Environment files (placeholders only; real .env files are git-ignored, never commit them)
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env.local
-
-# API
-cd apps/api
-uv sync
-uv run uvicorn app.main:app --reload --port 8000
-# http://localhost:8000/health  ->  {"status":"ok"}
-
-# Web (new terminal, from the repo root)
-pnpm install
-pnpm web:dev
-# http://localhost:3000
-```
-
-The API reads `apps/api/.env` relative to its working directory, so run it from `apps/api`.
-
-No Supabase project is required in Phase 0.
-
-## Checks
-
-```bash
-# API (from apps/api)
-uv run ruff check . && uv run ruff format --check .
-uv run mypy
-uv run pytest
-
-# Web (from the repo root)
-pnpm web:lint
-pnpm web:typecheck
-pnpm web:test
-pnpm web:build
-```
-
-GitHub Actions runs the same checks (`.github/workflows/`), plus secret scanning and dependency
-audits.
-
-## Security notes
-
-- Never commit `.env` files or keys. The Supabase service-role key is server-side only and must
-  never use a `NEXT_PUBLIC_` name.
-- Evidence will only ever live in a private bucket behind signed URLs and is quarantined until
-  malware scanning succeeds. See [docs/security-controls.md](docs/security-controls.md).
+- Never commit `.env` files, credential files or keys; the ignore rules cover them and CI scans for
+  secrets. Database credentials live outside the repository (see the RUNBOOK).
+- Mapping controls to ISO/IEC 27001:2022, SOC 2 or NIST CSF 2.0 (a design goal, not built) is for reference
+  only and would not imply certification or compliance.
 - pnpm dependency install scripts are denied by default (`pnpm-workspace.yaml`).

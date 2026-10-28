@@ -1,5 +1,11 @@
 # Risk and Evidence Methodology
 
+> **Status: design baseline, not implemented.** The shipped MVP uses a simpler, fully implemented method,
+> `weighted_average_risk_v1` (a weighted average of questionnaire answer risk points, with frozen
+> per-version thresholds), documented in [scoring.md](scoring.md). Inherent risk, tiering, the three-stage
+> evidence model, control-specific residual risk and risk acceptance below are the planned direction and
+> do not exist in the code yet.
+
 Status: design baseline, methodology version `v1` (to be implemented in Phase 2).
 All numeric values in this document are **defaults held in versioned configuration**
 (`methodology/v1.yaml`), not constants in code. Changing any weight, threshold or assumption

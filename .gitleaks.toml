@@ -1,0 +1,10 @@
+title = "VendorTrust gitleaks config"
+
+[extend]
+useDefault = true
+
+# Exact-value allowlist: public test vectors and fake values only. No path is allowlisted.
+[[allowlists]]
+description = "RFC 6238 TOTP test vector (base32 of ASCII 12345678901234567890)"
+regexTarget = "match"
+regexes = ['''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''']

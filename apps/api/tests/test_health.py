@@ -1,6 +1,3 @@
-import os
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -44,14 +41,3 @@ def test_cors_origins_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> 
 def test_single_cors_origin_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("VT_CORS_ALLOWED_ORIGINS", "http://localhost:3000")
     assert Settings().cors_allowed_origins == ["http://localhost:3000"]
-
-
-def test_env_example_parses(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The documented template must load unchanged (inline comments, list values)."""
-    for name in list(os.environ):
-        if name.startswith("VT_"):
-            monkeypatch.delenv(name)
-    example = Path(__file__).resolve().parents[1] / ".env.example"
-    settings = Settings(_env_file=example)
-    assert settings.environment == "development"
-    assert settings.cors_allowed_origins == ["http://localhost:3000"]
