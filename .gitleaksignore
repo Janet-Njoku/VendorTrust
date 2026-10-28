@@ -1,0 +1,2 @@
+# RFC 6238 public TOTP test vector in a test, already in pushed history (fingerprint = commit:file:rule:line)
+18172c3c096060962da433ec0f6af299ed958c44:apps/api/tests/test_dev_auth.py:generic-api-key:289
