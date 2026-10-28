@@ -189,8 +189,8 @@ determination.
   bounded, order independent).
 - **Authorization and isolation**: every endpoint is exercised across tenants, roles and vendor scope against
   a real PostgreSQL; the catalog is checked (RLS and FORCE on every table, exact grants, a single definer
-  function, no policy order or cost dependence); a mutation check broke the security SQL and API logic and
-  confirmed the tests noticed.
+  function, no policy order or cost dependence); during development the author manually broke the security SQL and API logic to
+  confirm the tests noticed (a manual check, not an automated mutation-testing suite).
 - **Authentication**: forged, expired, wrong-issuer, wrong-audience, `alg:none` and algorithm-confusion
   tokens; MFA on every data route; the first-login and bootstrap paths.
 - **End to end**: the whole journey (register, bootstrap, MFA, assess, score) against the real API and
