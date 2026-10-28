@@ -56,18 +56,25 @@ against a local PostgreSQL with a local identity stand-in. Gaps are in the threa
 
 ## Screenshot checklist
 
-No images have been captured yet, so nothing in the repository links to one. Capture them from your own
-machine; the full plan and file names are in [screenshots/README.md](screenshots/README.md).
+Four screenshots are committed in [docs/screenshots/](screenshots/README.md) and shown in the
+[README](../README.md#screenshots). Capture notes are in [screenshots/README.md](screenshots/README.md).
 
-- [ ] Start demo mode and keep the `DEMO MODE` banner visible in every demo screenshot.
-- [ ] 1440 x 900 window, light theme, PNG, no browser chrome, other tabs and bookmarks hidden.
-- [ ] `01-dashboard.png`: totals, risk distribution, high-risk vendors.
-- [ ] `02-vendor-register.png`: with a search and a risk filter applied.
-- [ ] `03-questionnaire-editor.png`: a draft with weights and thresholds.
-- [ ] `04-assessment-answering.png`: progress and saved answers.
-- [ ] `05-assessment-result.png`: gauge, category bars, weighted breakdown.
-- [ ] `06-mfa-setup.png` and `07-no-access.png`: from the local stack, using `you@example.com`-style accounts.
-- [ ] Check each image for real emails, project URLs, tokens, QR codes or TOTP secrets, and retake it if any show.
-- [ ] Save the files in `docs/screenshots/`, then add the images to the README's Screenshots section and
-  update `docs/screenshots/README.md`. Do not link an image before it is committed; `tests/test_docs.py` fails if
-  you do.
+Captured:
+
+- [x] `dashboard.png`: totals, risk distribution, high-risk vendors, progress, recent activity.
+- [x] `assessment-results.png`: risk gauge, score by category, weighted breakdown.
+- [x] `vendor-register.png`: search and status and risk filters.
+- [x] `questionnaire.png`: a published, read-only version with weights and risk thresholds.
+
+Future additions (not captured yet):
+
+- [ ] `mfa-setup.png`: two-factor setup for an internal role, from the real local stack
+  ([local-e2e.md](local-e2e.md)).
+- [ ] `no-access.png`: the "No access yet" screen for a newly registered user, from the same stack.
+
+Before committing any new image:
+
+- [ ] PNG, no browser chrome, other tabs and bookmarks hidden; keep the `DEMO MODE` banner if it was taken in demo mode.
+- [ ] Check it for real emails, project URLs or identifiers, tokens, QR codes and TOTP secrets, and retake it if any show.
+- [ ] Add it to the README's Screenshots section and to the table in `docs/screenshots/README.md`. Do not link
+  an image before it is committed; `tests/test_docs.py` fails if you do.

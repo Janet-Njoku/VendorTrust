@@ -53,19 +53,32 @@ correctly.
 
 ## Screenshots
 
-No screenshots have been captured yet. The plan and the capture instructions are in
-[docs/screenshots/](docs/screenshots/README.md); images will be linked here once they exist. To see the
-interface now, run it in [demo mode](#try-it) (fictional data, clearly labelled).
+Captured from the running application with a single sample vendor ("Demo Vendor"). Click an image for full size.
 
-| Planned image | Shows | Status |
-|---|---|---|
-| Dashboard | Totals, risk distribution, high-risk vendors | _placeholder_ |
-| Vendor register | Search and risk filter | _placeholder_ |
-| Questionnaire editor | Draft version with weights and thresholds | _placeholder_ |
-| Assessment result | Score gauge and weighted breakdown | _placeholder_ |
-| MFA setup | TOTP enrolment for an internal role | _placeholder_ |
+**Dashboard.** Portfolio view built from each vendor's latest scored assessment: vendor totals, risk
+distribution, high-risk vendors, assessment progress, and recent activity taken from the audit trail.
 
-A reviewer walkthrough and the capture checklist are in [docs/portfolio-demo.md](docs/portfolio-demo.md).
+![VendorTrust dashboard showing vendor totals, risk distribution, assessment progress and recent activity](docs/screenshots/dashboard.png)
+
+**Assessment results.** A scored assessment: an overall 0 to 100 risk score on a gauge with the Low, Medium, High
+and Critical thresholds, a per-category breakdown with each category's weight, "not applicable" categories left
+out, and the scoring method (`weighted_average_risk_v1`) recorded on the result.
+
+![Assessment results with a risk gauge, score by category and a weighted breakdown](docs/screenshots/assessment-results.png)
+
+**Vendor register.** Searchable and filterable by status and risk level, with each vendor's current risk taken
+from its latest scored assessment.
+
+![Vendor register with search, status and risk filters](docs/screenshots/vendor-register.png)
+
+**Published questionnaire.** A published version is read-only: assessments that use it keep exactly these
+questions, weights, answer risk points and thresholds. Changes go into a new draft.
+
+![A published questionnaire version with weighted questions, answer risk points and risk thresholds](docs/screenshots/questionnaire.png)
+
+The MFA setup screens are not captured yet. A reviewer walkthrough is in
+[docs/portfolio-demo.md](docs/portfolio-demo.md), and the capture notes are in
+[docs/screenshots/](docs/screenshots/README.md).
 
 ## Architecture
 
@@ -238,7 +251,7 @@ docs/         Architecture, API, scoring, trust boundary, frontend, local end-to
 | [infra/db/RUNBOOK.md](infra/db/RUNBOOK.md) | Beginner-friendly procedure for a Supabase project (roles, credentials, first organization) |
 | [infra/db/README.md](infra/db/README.md) | Bootstrap design, safeguards and verification |
 | [docs/dependency-notes.md](docs/dependency-notes.md) | Rationale for non-obvious dependencies |
-| [docs/screenshots/](docs/screenshots/README.md) | Screenshot plan (none captured yet) |
+| [docs/screenshots/](docs/screenshots/README.md) | Screenshot list and capture notes |
 
 ## Roadmap
 
