@@ -1,6 +1,7 @@
 # Security Controls for Vendor Data and Evidence
 
-Status: requirements baseline. Items are tagged with the phase that implements them.
+Status: requirements baseline. Items are tagged with the phase that implements them. **Section 9 states
+what the current code actually implements**; read it before relying on any item below.
 
 ## 1. Identity and authorization
 
@@ -15,9 +16,11 @@ Status: requirements baseline. Items are tagged with the phase that implements t
 
 ## 2. Tenant and vendor isolation
 
-- A scoped repository layer injects `org_id` (and `vendor_id` for vendor users) into every query.
+- *(Original plan: a scoped repository layer injects `org_id` into every query. The implementation instead
+  lets row level security do this, and queries carry no organization filter; see section 9.)*
 - Supabase RLS is **verified against the real connection model** before being relied on (see
-  architecture §3.3). The API connects with a least-privilege role, never the service role.
+  [architecture.md](architecture.md) section 4 and [trust-boundary.md](trust-boundary.md)). The API connects
+  with a least-privilege role, never the service role.
 - **Automated cross-tenant and cross-vendor tests** run in CI for every endpoint; a new endpoint
   without isolation tests fails review.
 
@@ -65,6 +68,31 @@ Status: requirements baseline. Items are tagged with the phase that implements t
 - CI runs lint, type checks, tests, dependency audit and secret scanning on each PR.
 - `main` should be protected with required checks (repository setting, to be configured by the
   owner). Workflow permissions default to read-only.
+
+## 9. Implementation status
+
+| Control | Status | Where |
+|---|---|---|
+| JWT verification: signature, issuer, audience, expiry, asymmetric algorithms only | Implemented | `app/auth.py`, [api.md](api.md) |
+| Role, organization and vendor scope from the database, not from token claims | Implemented | `vt.begin_request`, [trust-boundary.md](trust-boundary.md) |
+| Row level security, `FORCE`, least-privilege role, no `BYPASSRLS`, one narrow definer function | Implemented | migrations 0003 to 0005 |
+| Tenant isolation by the database instead of a "scoped repository layer" | Implemented, **replaces** the repository-layer idea in section 2 | queries carry no organization filter by design |
+| Cross-tenant and role tests on every endpoint | Implemented | `tests/db/test_*_api.py`, `test_rls_*` |
+| MFA for internal users (`aal2`), including TOTP enrollment in the web app | Implemented; recovery codes are not | `app/deps.py`, [frontend.md](frontend.md) |
+| Append-only audit log for the application role | Implemented for vendor, questionnaire, assessment and bootstrap events; **not immutable against a database owner or superuser**; no hash chain | `audit_log`, triggers |
+| First organization created by an operator, once, enforced by the database | Implemented | migration 0006, `scripts/bootstrap_org.py` |
+| Pydantic validation, parameterized queries, generic error bodies (no SQL or token echo) | Implemented | schemas, `app/errors.py` |
+| CORS allowlist (wildcard rejected), docs off in production, minimal health endpoint | Implemented | `app/main.py`, `app/config.py` |
+| Credentials outside the repository, strict loader, secrets never printed, secret-key refusal in the browser config | Implemented | `app/credentials.py`, `apps/web/src/lib/config.ts` |
+| Secret scanning, dependency audits and lockfiles in CI | Configured; first run happens on the first push | `.github/workflows/` |
+| Security headers on the web app | Partial: `nosniff`, `frame DENY`, referrer and permissions policy; **no Content Security Policy** | `apps/web/next.config.ts` |
+| CSRF protection | Not applicable today: bearer tokens, no cookie authentication | |
+| Rate limiting (sign-in is Supabase's; invitations and uploads do not exist) | **Not implemented** | |
+| Separation of duties; risk acceptance by a separate approver | **Not implemented** (no approval workflow) | |
+| Vendor invitations (single-use, expiring) and membership management endpoints | **Not implemented**; an administrator grants memberships directly in the database | |
+| Evidence handling: private storage, ClamAV quarantine, content-type allowlist, hashing | **Not implemented** (Phase 4) | |
+| Data retention and offboarding deletion per organization | **Not implemented** | |
+| Structured, redacted logging | Minimal: database errors log only the error class; no request logging | `app/errors.py` |
 
 ## 8. Deferred (explicitly out of the first milestone)
 

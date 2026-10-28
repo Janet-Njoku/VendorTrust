@@ -2,10 +2,10 @@ name: CI (API)
 
 on:
   pull_request:
-    paths: ["apps/api/**", ".github/workflows/ci-api.yml"]
+    paths: ["apps/api/**", "infra/**", "docs/**", "README.md", "CLAUDE.md", ".claude/hooks/**", ".github/workflows/ci-api.yml"]
   push:
     branches: [main]
-    paths: ["apps/api/**", ".github/workflows/ci-api.yml"]
+    paths: ["apps/api/**", "infra/**", "docs/**", "README.md", "CLAUDE.md", ".claude/hooks/**", ".github/workflows/ci-api.yml"]
 
 permissions:
   contents: read
@@ -13,9 +13,29 @@ permissions:
 jobs:
   api:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: apps/api
+    # A throwaway PostgreSQL for the row level security, migration and end-to-end tests. They FAIL (never
+    # skip) when CI=true and no server is reachable, so the security suite cannot silently not run.
+    # Trust authentication is acceptable only because this container lives for one job and holds no data.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: vt_dev_admin
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vt_dev_admin"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      VT_TEST_PG_HOST: 127.0.0.1
+      VT_TEST_PG_PORT: "5432"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,4 +50,6 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
+      # the roles a Supabase project provides (a non-superuser admin, anon, authenticated, service_role)
+      - run: psql -X -h 127.0.0.1 -U vt_dev_admin -d postgres -v ON_ERROR_STOP=1 -f ../../infra/db/dev/supabase-sim.sql
       - run: uv run pytest

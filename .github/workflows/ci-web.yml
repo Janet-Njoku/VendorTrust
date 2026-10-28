@@ -2,10 +2,10 @@ name: CI (Web)
 
 on:
   pull_request:
-    paths: ["apps/web/**", "package.json", "pnpm-*.yaml", ".node-version", ".github/workflows/ci-web.yml"]
+    paths: ["apps/web/**", "apps/api/app/questionnaire_starter.py", "package.json", "pnpm-*.yaml", ".node-version", ".github/workflows/ci-web.yml"]
   push:
     branches: [main]
-    paths: ["apps/web/**", "package.json", "pnpm-*.yaml", ".node-version", ".github/workflows/ci-web.yml"]
+    paths: ["apps/web/**", "apps/api/app/questionnaire_starter.py", "package.json", "pnpm-*.yaml", ".node-version", ".github/workflows/ci-web.yml"]
 
 permissions:
   contents: read

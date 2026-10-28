@@ -6,8 +6,13 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
     "pydantic>=2.9",
+    "psycopg[binary]>=3.2",
     "pydantic-settings>=2.6",
+    "python-dotenv>=1.0",
     "uvicorn[standard]>=0.32",
+    "sqlalchemy>=2.0,<2.1",
+    "alembic>=1.13",
+    "pyjwt[crypto]>=2.9",
 ]
 
 [dependency-groups]
@@ -34,15 +39,27 @@ src = ["."]
 select = ["E", "F", "I", "B", "UP", "S", "SIM", "C4", "PT", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]
+"tests/**" = ["S101", "S603", "S607", "S105", "S106", "S107"]  # fake credentials only
+# SQL-heavy files: long SQL string literals, constant-SQL f-strings (no user input), a seeded RNG
+"tests/db/**" = ["E501", "PT018", "S608", "S311", "RUF005", "RUF015"]
+"tests/test_scoring.py" = ["S311", "RUF005"]
+"tests/test_dev_auth.py" = ["PT018", "E501"]
+"tests/test_credential_guard.py" = ["PT018", "E501"]
+"alembic/versions/**" = ["E501", "S608"]
+# the only interpolation is the module-level COLUMNS constant; every value is a bound parameter
+"app/routers/*.py" = ["S608"]
+# question text is content, not code
+"app/questionnaire_starter.py" = ["E501"]
+"app/questionnaires.py" = ["S608"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["app", "tests"]
+files = ["app", "scripts", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --cov=app --cov-report=term-missing"
+markers = ["db: needs the local PostgreSQL test cluster (scripts/dev-db.sh init)"]
 pythonpath = ["."]

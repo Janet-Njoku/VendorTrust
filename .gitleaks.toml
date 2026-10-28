@@ -1,0 +1,11 @@
+title = "VendorTrust gitleaks config"
+
+[extend]
+useDefault = true
+
+# Exact-value allowlist: public test vectors and fake values only. No path is allowlisted.
+# Singular [allowlist]: the plural [[allowlists]] needs gitleaks 8.25+, and the Action installs 8.24.3.
+[allowlist]
+description = "RFC 6238 TOTP test vector (base32 of ASCII 12345678901234567890)"
+regexTarget = "secret"
+regexes = ['''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''']
