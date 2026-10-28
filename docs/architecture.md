@@ -1,7 +1,8 @@
 # VendorTrust Architecture
 
 This document separates **what is built and tested** (sections 1 to 7) from **what is designed but not
-built** (section 8). The roadmap in [roadmap.md](roadmap.md) says which is which phase by phase.
+built** (section 8). The roadmap in [roadmap.md](roadmap.md) says which is which phase by phase. For the
+security view see [security-architecture.md](security-architecture.md) and [threat-model.md](threat-model.md).
 
 ## 1. Goals and scope
 

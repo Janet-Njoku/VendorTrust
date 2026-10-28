@@ -1,10 +1,11 @@
 # Runbook: set up the VendorTrust database roles on Supabase
 
-A step-by-step guide for running the approved bootstrap against your **development** Supabase
+A step-by-step guide for running the reviewed bootstrap against your **development** Supabase
 project, written for someone who has not used `psql` before.
 
-> **Do not start until you have been told the bootstrap is approved.** Steps 1 to 4 only
-> read; nothing is changed until step 6.
+> **Run this only against a Supabase project you own and have reviewed, and only after you have read the
+> SQL files named below.** Steps 1 to 4 only read; nothing is changed until step 6. Never run it against a
+> production project.
 
 ## Ground rules (read once)
 
@@ -112,7 +113,7 @@ again afterwards: it should still say `vt_app and vt_migrator do not exist yet`.
 Because rollback is the default, a typing mistake can never apply the changes by accident. The
 only way to commit is the exact option shown in Step 6.
 
-## Step 6: The real run (only after approval)
+## Step 6: The real run (only once Steps 1 to 5 have passed and you are sure of the target)
 
 ```bash
 psql -X -q -v ON_ERROR_STOP=1 -v commit=1 -f infra/db/bootstrap.sql
@@ -223,8 +224,9 @@ command, `history | grep -i passw` should show nothing sensitive.
 
 ## Step 12: Create the first organization (once, after the migrations are applied)
 
-> **Do not run this until the migrations (Alembic, `docs/migrations` in the README) have been applied to
-> the project and you have been told to proceed.** It is a one-time operator step; there is no endpoint
+> **Do not run this until the Alembic migrations (`apps/api/alembic/versions/`, 0001 to 0006; see
+> [local-e2e.md](../../docs/local-e2e.md) for how they are applied locally) have been applied to the
+> project and you are sure this is the right project.** It is a one-time operator step; there is no endpoint
 > and no button for it, and registering never grants access.
 
 1. In the web app, **register** the person who will be the administrator, confirm their email, and sign in

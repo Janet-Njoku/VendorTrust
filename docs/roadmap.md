@@ -10,8 +10,9 @@ questionnaires and assessments scored by a deterministic weighted method, [scori
 first cut of **Phase 7** (the web dashboard, register, questionnaire editor and assessment screens).
 **Not started:** inherent risk and tiering (Phase 2), evidence validation (Phase 4), residual risk,
 findings and remediation (Phase 5), reporting (Phase 6), hardening and release (Phase 8). Applying the
-migrations to a real Supabase project is still waiting for an explicit go-ahead. The table below is the
-original plan, kept unchanged as the direction of travel.
+migrations to a real Supabase project has been done by the author for manual checks (administrator
+onboarding, MFA, vendor creation, questionnaire publishing); the full assessment flow has not been validated
+there and nothing is deployed. The table below is the original plan, kept unchanged as the direction of travel.
 
 Revised after architecture review. The first functional milestone (end of Phase 5) must
 demonstrate real GRC automation: risk-tiered assessment, three-stage evidence validation,

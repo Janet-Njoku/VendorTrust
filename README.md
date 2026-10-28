@@ -8,8 +8,26 @@ on a multi-tenant foundation where the **database itself enforces who can see wh
 It is a portfolio project: a working vertical slice with the security model taken seriously, an honest
 account of what is not built yet, and the tests to back every claim.
 
-> **Status:** a working MVP, verified locally. Nothing has been deployed and no real Supabase project has
-> been connected. See [What is and is not built](#what-is-and-is-not-built).
+[![CI (API)](https://github.com/Janet-Njoku/VendorTrust/actions/workflows/ci-api.yml/badge.svg)](https://github.com/Janet-Njoku/VendorTrust/actions/workflows/ci-api.yml)
+[![CI (web)](https://github.com/Janet-Njoku/VendorTrust/actions/workflows/ci-web.yml/badge.svg)](https://github.com/Janet-Njoku/VendorTrust/actions/workflows/ci-web.yml)
+[![Security](https://github.com/Janet-Njoku/VendorTrust/actions/workflows/security.yml/badge.svg)](https://github.com/Janet-Njoku/VendorTrust/actions/workflows/security.yml)
+
+**In 30 seconds**
+
+- **What:** multi-tenant vendor risk management: vendor register, versioned questionnaires, assessments,
+  deterministic explainable scoring, dashboard and audit trail.
+- **Security engineering:** tenant isolation enforced by PostgreSQL row level security (`FORCE`, least-privilege
+  roles, one narrow `SECURITY DEFINER` function), JWT/JWKS verification, MFA (`aal2`) for internal roles,
+  roles and scope taken from the database, an append-only audit log, a one-time database-enforced bootstrap.
+- **Evidence:** over 1,200 automated tests, including cross-tenant and forged-claim attacks against a real
+  PostgreSQL, plus CI with gitleaks, dependency audits and pinned, read-only workflows.
+- **Honest limits:** [threat model](docs/threat-model.md) with residual risks; no CSP, rate limiting or audit hash
+  chain yet; not deployed.
+
+> **Status:** a working MVP. Verified by the author locally and against a real Supabase project (PostgreSQL and
+> Auth): administrator onboarding, MFA, vendor creation and questionnaire publishing. Not deployed; the full
+> assessment flow has not been validated against Supabase yet. See
+> [What is and is not built](#what-is-and-is-not-built).
 
 ## The problem
 
@@ -38,6 +56,16 @@ correctly.
 No screenshots have been captured yet. The plan and the capture instructions are in
 [docs/screenshots/](docs/screenshots/README.md); images will be linked here once they exist. To see the
 interface now, run it in [demo mode](#try-it) (fictional data, clearly labelled).
+
+| Planned image | Shows | Status |
+|---|---|---|
+| Dashboard | Totals, risk distribution, high-risk vendors | _placeholder_ |
+| Vendor register | Search and risk filter | _placeholder_ |
+| Questionnaire editor | Draft version with weights and thresholds | _placeholder_ |
+| Assessment result | Score gauge and weighted breakdown | _placeholder_ |
+| MFA setup | TOTP enrolment for an internal role | _placeholder_ |
+
+A reviewer walkthrough and the capture checklist are in [docs/portfolio-demo.md](docs/portfolio-demo.md).
 
 ## Architecture
 
@@ -68,7 +96,22 @@ flowchart LR
 ```
 
 A longer walkthrough (request sequence, state machines, data model) is in
-[docs/architecture.md](docs/architecture.md).
+[docs/architecture.md](docs/architecture.md); the security view on one page is
+[docs/security-architecture.md](docs/security-architecture.md).
+
+### How a request is secured
+
+1. **Authenticate:** the bearer token's signature, issuer, audience, expiry and algorithm (ES256 or RS256 only)
+   are verified against the identity provider's public keys.
+2. **MFA:** internal roles need an `aal2` token; anything else is treated as `aal1` and refused.
+3. **Resolve scope from the database:** `vt.begin_request` reads the caller's **own** membership row and derives
+   organization, role and vendor from it. Nothing from the request or token claims is trusted for scope.
+4. **Isolate in PostgreSQL:** every policy requires a live membership, so the application role sees only its
+   own tenant's rows even if a query is wrong.
+5. **Assess and score:** published questionnaire versions are frozen by triggers; scoring is deterministic
+   (`weighted_average_risk_v1`, 0 to 100, thresholds 25/50/75 stored per version), so a result can be
+   reproduced from its answers ([scoring](docs/scoring.md)).
+6. **Record:** the application role can only append to the audit log.
 
 ## Security design
 
@@ -132,7 +175,7 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pyt
 pnpm web:lint && pnpm web:typecheck && pnpm web:test && pnpm web:build
 ```
 
-About 1,170 automated tests (about 975 backend, 195 frontend) cover scoring maths, every endpoint across
+Over 1,200 automated tests (1,026 backend collected by pytest, 195 frontend in Vitest) cover scoring maths, every endpoint across
 tenants and roles against a real PostgreSQL, authentication and MFA, migrations, the bootstrap, the
 credential tooling, a full register-to-scored-assessment journey, and the interface. Database tests skip
 locally when no server is running but **fail** in CI, so the security suite cannot silently not run
@@ -145,10 +188,10 @@ the local end-to-end workflow, and CI.
 
 **Not built (limitations and future work):**
 
-- **Not deployed or connected to a real Supabase project.** The migrations and bootstrap are written,
-  dry-run-safe and tested locally; applying them to Supabase is a documented step waiting for approval
-  ([RUNBOOK](infra/db/RUNBOOK.md)). The local identity stand-in mirrors Supabase's documented endpoints but
-  has not been exercised against the real service.
+- **Not deployed.** The automated tests run against a local PostgreSQL with a local identity stand-in. The
+  author has also exercised a real Supabase project by hand (administrator onboarding, MFA, vendor creation,
+  questionnaire publishing); the full assessment flow has not been validated there yet, and nothing has been
+  tested under production conditions ([RUNBOOK](infra/db/RUNBOOK.md)).
 - **No membership management or invitations.** An administrator grants roles directly in the database; no
   vendor portal for vendors to answer their own questionnaires.
 - **Scoring is simpler than the design baseline.** Self-reported answers are weighted and averaged; there is
@@ -180,6 +223,9 @@ docs/         Architecture, API, scoring, trust boundary, frontend, local end-to
 | Document | Contents |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Components, diagrams, decisions, data model, what is designed but not built |
+| [docs/security-architecture.md](docs/security-architecture.md) | The security design on one page: request path, roles, secrets, pipeline |
+| [docs/threat-model.md](docs/threat-model.md) | Threats, implemented mitigations with test references, residual risks |
+| [docs/portfolio-demo.md](docs/portfolio-demo.md) | A 5 to 15 minute reviewer route and the screenshot checklist |
 | [docs/trust-boundary.md](docs/trust-boundary.md) | The security model, trust boundary, limits and the test map |
 | [docs/scoring.md](docs/scoring.md) | Questionnaire versioning and the scoring methodology with a worked example |
 | [docs/api.md](docs/api.md) | Endpoints, roles, errors, MFA, first-login provisioning |
@@ -193,6 +239,26 @@ docs/         Architecture, API, scoring, trust boundary, frontend, local end-to
 | [infra/db/README.md](infra/db/README.md) | Bootstrap design, safeguards and verification |
 | [docs/dependency-notes.md](docs/dependency-notes.md) | Rationale for non-obvious dependencies |
 | [docs/screenshots/](docs/screenshots/README.md) | Screenshot plan (none captured yet) |
+
+## Roadmap
+
+Planned, not built ([roadmap.md](docs/roadmap.md) has the phase plan): membership management and vendor
+invitations, a Content Security Policy and rate limiting, evidence upload with malware scanning, reviewer
+verification and findings/remediation, and a hash-chained audit log. Each is listed with its status in
+[security-controls.md](docs/security-controls.md).
+
+## Security engineering demonstrated
+
+| Skill | Where to see it |
+|---|---|
+| Multi-tenant isolation design | RLS with `FORCE`, no application-side tenant filter: [trust-boundary.md](docs/trust-boundary.md), `tests/db/test_rls_isolation.py` |
+| Least-privilege database design | Separate `vt_app` and `vt_migrator` roles, exact grants pinned by `tests/db/test_schema_guard.py` |
+| Safe use of a privileged primitive | One `SECURITY DEFINER` function, with the recursion and ordering arguments tested |
+| Authentication and authorization | JWT/JWKS verification, `aal2` MFA gate, DB-derived scope: `apps/api/app/auth.py`, `app/deps.py` |
+| Abuse-case and negative testing | Forged claims, wrong algorithms, cross-tenant access, concurrent bootstrap, pooled-connection leaks |
+| Secrets management | Credentials outside the repo, strict loader, redacted errors, gitleaks allowlist limited to one exact value |
+| Secure delivery | Pinned, read-only GitHub Actions; dependency audits; database tests that fail rather than skip in CI |
+| Threat modelling and honest reporting | [threat-model.md](docs/threat-model.md) with residual risks; limits stated beside every control |
 
 ## Security notes for contributors
 
