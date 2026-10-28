@@ -146,10 +146,10 @@ The interesting part of the project. Each row is enforced in code and covered by
 JWT, so the context it receives is a claim made by the API; RLS protects against bugs, guessed
 identifiers and confused-deputy mistakes, **not** against an attacker who holds the application's database
 credential and knows a user id. The audit log is append-only for the application role but not immutable
-against a database owner or superuser. The checks were validated by mutation: the security SQL, API
-logic and frontend were deliberately broken in over a hundred different ways, and the tests were
-strengthened until each break was caught (the few survivors were equivalent changes, where a library
-already refuses the case and the extra check is defence in depth).
+against a database owner or superuser. During development the author also tested the checks by hand: the security SQL, API logic and
+frontend were deliberately broken in a number of ways to confirm that the tests noticed, and tests were
+added or tightened where they did not. This was a manual exercise, not an automated mutation-testing suite,
+and it is not reproducible from this repository.
 
 ## Technology
 
@@ -275,6 +275,7 @@ verification and findings/remediation, and a hash-chained audit log. Each is lis
 
 ## Security notes for contributors
 
+- To report a suspected vulnerability, see [SECURITY.md](SECURITY.md).
 - Never commit `.env` files, credential files or keys; the ignore rules cover them and CI scans for
   secrets. Database credentials live outside the repository (see the RUNBOOK).
 - Mapping controls to ISO/IEC 27001:2022, SOC 2 or NIST CSF 2.0 (a design goal, not built) is for reference
